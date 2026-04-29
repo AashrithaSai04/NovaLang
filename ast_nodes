@@ -1,0 +1,36 @@
+from dataclasses import dataclass
+from typing import List
+
+
+@dataclass
+class NumberNode:
+    value: int
+
+
+@dataclass
+class VariableNode:
+    name: str
+
+
+@dataclass
+class BinaryOpNode:
+    left: object
+    operator: str
+    right: object
+
+
+@dataclass
+class AssignmentNode:
+    name: str
+    value: object
+    is_declaration: bool = False
+
+
+@dataclass
+class PrintNode:
+    value: object
+
+
+@dataclass
+class ProgramNode:
+    statements: List[object]

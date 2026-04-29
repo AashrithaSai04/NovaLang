@@ -1,0 +1,180 @@
+Source Program:
+#begin
+var x <- 2
+var y <- 3
+var z <- (x + y) * 4
+show -> z
+#end
+
+Lexical Analysis (Tokens):
+BEGIN      '#begin'
+KEYWORD    'var'
+IDENTIFIER 'x'
+ASSIGN     '<-'
+NUMBER     2
+KEYWORD    'var'
+IDENTIFIER 'y'
+ASSIGN     '<-'
+NUMBER     3
+KEYWORD    'var'
+IDENTIFIER 'z'
+ASSIGN     '<-'
+LPAREN     '('
+IDENTIFIER 'x'
+PLUS       '+'
+IDENTIFIER 'y'
+RPAREN     ')'
+STAR       '*'
+NUMBER     4
+KEYWORD    'show'
+ARROW      '->'
+IDENTIFIER 'z'
+END        '#end'
+EOF        None
+
+Syntax Analysis (AST):
+ProgramNode(
+  statements=
+    [
+      AssignmentNode(
+        name=
+          'x'
+        value=
+          NumberNode(
+            value=
+              2
+          )
+        is_declaration=
+          True
+      )
+      AssignmentNode(
+        name=
+          'y'
+        value=
+          NumberNode(
+            value=
+              3
+          )
+        is_declaration=
+          True
+      )
+      AssignmentNode(
+        name=
+          'z'
+        value=
+          BinaryOpNode(
+            left=
+              BinaryOpNode(
+                left=
+                  VariableNode(
+                    name=
+                      'x'
+                  )
+                operator=
+                  '+'
+                right=
+                  VariableNode(
+                    name=
+                      'y'
+                  )
+              )
+            operator=
+              '*'
+            right=
+              NumberNode(
+                value=
+                  4
+              )
+          )
+        is_declaration=
+          True
+      )
+      PrintNode(
+        value=
+          VariableNode(
+            name=
+              'z'
+          )
+      )
+    ]
+)
+
+Semantic Analysis (Symbol Table):
+x: number
+y: number
+z: number
+
+Intermediate Code:
+x = 2
+y = 3
+t1 = x + y
+t2 = t1 * 4
+z = t2
+print z
+
+Optimized AST:
+ProgramNode(
+  statements=
+    [
+      AssignmentNode(
+        name=
+          'x'
+        value=
+          NumberNode(
+            value=
+              2
+          )
+        is_declaration=
+          True
+      )
+      AssignmentNode(
+        name=
+          'y'
+        value=
+          NumberNode(
+            value=
+              3
+          )
+        is_declaration=
+          True
+      )
+      AssignmentNode(
+        name=
+          'z'
+        value=
+          NumberNode(
+            value=
+              20
+          )
+        is_declaration=
+          True
+      )
+      PrintNode(
+        value=
+          NumberNode(
+            value=
+              20
+          )
+      )
+    ]
+)
+
+Optimized Code:
+x = 2
+y = 3
+t1 = 5
+t2 = 20
+z = 20
+print 20
+
+Generated Code:
+MOV x, 2
+MOV y, 3
+MOV t1, 5
+MOV t2, 20
+MOV z, 20
+MOV R1, 20
+PRINT R1
+
+Final Output:
+20

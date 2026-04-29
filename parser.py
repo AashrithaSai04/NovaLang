@@ -1,4 +1,8 @@
-from ast_nodes import AssignmentNode, BinaryOpNode, NumberNode, PrintNode, ProgramNode, VariableNode
+from ast_nodes import (
+    AssignmentNode, BinaryOpNode, NumberNode, PrintNode, ProgramNode,
+    VariableNode, IfNode, IfElseNode, ComparisonNode, WhileNode, StringNode,
+    UnaryOpNode
+)
 
 
 class ParserError(Exception):
@@ -33,6 +37,10 @@ class Parser:
             return self.declaration()
         if token.type == 'KEYWORD' and token.value == 'show':
             return self.print_statement()
+        if token.type == 'KEYWORD' and token.value == 'if':
+            return self.if_statement()
+        if token.type == 'KEYWORD' and token.value == 'while':
+            return self.while_statement()
         if token.type == 'IDENTIFIER':
             return self.assignment()
         raise ParserError(f'Unexpected token {token.type} at position {token.position}')
@@ -56,6 +64,44 @@ class Parser:
         value = self.expr()
         return PrintNode(value)
 
+    def if_statement(self):
+        self._expect('KEYWORD', 'if')
+        condition = self.comparison()
+        self._expect('LBRACE')
+        then_body = self.block()
+        self._expect('RBRACE')
+        
+        if self._current().type == 'KEYWORD' and self._current().value == 'else':
+            self._advance()
+            self._expect('LBRACE')
+            else_body = self.block()
+            self._expect('RBRACE')
+            return IfElseNode(condition, then_body, else_body)
+        
+        return IfNode(condition, then_body)
+
+    def while_statement(self):
+        self._expect('KEYWORD', 'while')
+        condition = self.comparison()
+        self._expect('LBRACE')
+        body = self.block()
+        self._expect('RBRACE')
+        return WhileNode(condition, body)
+
+    def block(self):
+        statements = []
+        while self._current().type not in ('RBRACE', 'EOF'):
+            statements.append(self.statement())
+        return statements
+
+    def comparison(self):
+        left = self.expr()
+        if self._current().type == 'RELOP':
+            operator = self._advance().value
+            right = self.expr()
+            return ComparisonNode(left, operator, right)
+        return left
+
     def expr(self):
         node = self.term()
         while self._current().type in ('PLUS', 'MINUS'):
@@ -74,9 +120,16 @@ class Parser:
 
     def factor(self):
         token = self._current()
+        if token.type == 'MINUS':
+            self._advance()
+            operand = self.factor()
+            return UnaryOpNode('-', operand)
         if token.type == 'NUMBER':
             self._advance()
             return NumberNode(token.value)
+        if token.type == 'STRING':
+            self._advance()
+            return StringNode(token.value)
         if token.type == 'IDENTIFIER':
             self._advance()
             return VariableNode(token.value)

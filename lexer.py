@@ -14,7 +14,7 @@ class LexerError(Exception):
 
 
 class Lexer:
-    KEYWORDS = {"var", "show"}
+    KEYWORDS = {"var", "show", "if", "else", "while"}
 
     def __init__(self, text: str):
         self.text = text
@@ -28,6 +28,16 @@ class Lexer:
 
             if char.isspace():
                 self.position += 1
+                continue
+
+            # Handle single-line comments
+            if self.text.startswith('//', self.position):
+                # Skip until end of line
+                while self.position < len(self.text) and self.text[self.position] != '\n':
+                    self.position += 1
+                # Skip the newline as well if present
+                if self.position < len(self.text) and self.text[self.position] == '\n':
+                    self.position += 1
                 continue
 
             if char == '#':
@@ -51,6 +61,11 @@ class Lexer:
                 tokens.append(Token('NUMBER', int(number), self.position))
                 continue
 
+            if char == '"':
+                string = self._read_string()
+                tokens.append(Token('STRING', string, self.position))
+                continue
+
             if self.text.startswith('<-', self.position):
                 tokens.append(Token('ASSIGN', '<-', self.position))
                 self.position += 2
@@ -61,7 +76,38 @@ class Lexer:
                 self.position += 2
                 continue
 
-            if char in '+-*/()':
+            # Handle comparison operators (check two-character operators first)
+            if self.text.startswith('<=', self.position):
+                tokens.append(Token('RELOP', '<=', self.position))
+                self.position += 2
+                continue
+
+            if self.text.startswith('>=', self.position):
+                tokens.append(Token('RELOP', '>=', self.position))
+                self.position += 2
+                continue
+
+            if self.text.startswith('==', self.position):
+                tokens.append(Token('RELOP', '==', self.position))
+                self.position += 2
+                continue
+
+            if self.text.startswith('!=', self.position):
+                tokens.append(Token('RELOP', '!=', self.position))
+                self.position += 2
+                continue
+
+            # Single-character comparison operators
+            if char in '<>':
+                token_map = {
+                    '<': 'RELOP',
+                    '>': 'RELOP',
+                }
+                tokens.append(Token(token_map[char], char, self.position))
+                self.position += 1
+                continue
+
+            if char in '+-*/(){}':
                 token_map = {
                     '+': 'PLUS',
                     '-': 'MINUS',
@@ -69,6 +115,8 @@ class Lexer:
                     '/': 'SLASH',
                     '(': 'LPAREN',
                     ')': 'RPAREN',
+                    '{': 'LBRACE',
+                    '}': 'RBRACE',
                 }
                 tokens.append(Token(token_map[char], char, self.position))
                 self.position += 1
@@ -99,3 +147,13 @@ class Lexer:
         while self.position < len(self.text) and self.text[self.position].isdigit():
             self.position += 1
         return self.text[start:self.position]
+
+    def _read_string(self) -> str:
+        self.position += 1  # Skip opening quote
+        start = self.position
+        while self.position < len(self.text) and self.text[self.position] != '"':
+            self.position += 1
+        string_content = self.text[start:self.position]
+        if self.position < len(self.text):
+            self.position += 1  # Skip closing quote
+        return string_content

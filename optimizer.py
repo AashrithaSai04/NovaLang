@@ -1,4 +1,8 @@
-from ast_nodes import AssignmentNode, BinaryOpNode, NumberNode, PrintNode, ProgramNode, VariableNode
+from ast_nodes import (
+    AssignmentNode, BinaryOpNode, NumberNode, PrintNode, ProgramNode,
+    VariableNode, IfNode, IfElseNode, ComparisonNode, WhileNode, StringNode,
+    UnaryOpNode
+)
 import re
 
 
@@ -22,6 +26,27 @@ class Optimizer:
         if isinstance(node, PrintNode):
             return PrintNode(self._optimize(node.value, constants))
 
+        if isinstance(node, IfNode):
+            optimized_condition = self._optimize(node.condition, constants)
+            optimized_body = [self._optimize(stmt, constants) for stmt in node.then_body]
+            return IfNode(optimized_condition, optimized_body)
+
+        if isinstance(node, IfElseNode):
+            optimized_condition = self._optimize(node.condition, constants)
+            optimized_then = [self._optimize(stmt, constants) for stmt in node.then_body]
+            optimized_else = [self._optimize(stmt, constants) for stmt in node.else_body]
+            return IfElseNode(optimized_condition, optimized_then, optimized_else)
+
+        if isinstance(node, WhileNode):
+            optimized_condition = self._optimize(node.condition, constants)
+            optimized_body = [self._optimize(stmt, constants) for stmt in node.body]
+            return WhileNode(optimized_condition, optimized_body)
+
+        if isinstance(node, ComparisonNode):
+            left = self._optimize(node.left, constants)
+            right = self._optimize(node.right, constants)
+            return ComparisonNode(left, node.operator, right)
+
         if isinstance(node, VariableNode):
             if node.name in constants:
                 return NumberNode(constants[node.name])
@@ -33,6 +58,12 @@ class Optimizer:
             if isinstance(left, NumberNode) and isinstance(right, NumberNode):
                 return NumberNode(self._apply(node.operator, left.value, right.value))
             return BinaryOpNode(left, node.operator, right)
+
+        if isinstance(node, UnaryOpNode):
+            operand = self._optimize(node.operand, constants)
+            if node.operator == '-' and isinstance(operand, NumberNode):
+                return NumberNode(-operand.value)
+            return UnaryOpNode(node.operator, operand)
 
         return node
 

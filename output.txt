@@ -2,8 +2,10 @@ Source Program:
 #begin
 var x <- 2
 var y <- 3
-var z <- (x + y) * 4
-show -> z
+if (x<y) then
+show -> "x is less than y"
+else
+show -> "x is not less than y"
 #end
 
 Lexical Analysis (Tokens):
@@ -16,19 +18,20 @@ KEYWORD    'var'
 IDENTIFIER 'y'
 ASSIGN     '<-'
 NUMBER     3
-KEYWORD    'var'
-IDENTIFIER 'z'
-ASSIGN     '<-'
+KEYWORD    'if'
 LPAREN     '('
 IDENTIFIER 'x'
-PLUS       '+'
+RELOP      '<'
 IDENTIFIER 'y'
 RPAREN     ')'
-STAR       '*'
-NUMBER     4
+KEYWORD    'then'
 KEYWORD    'show'
 ARROW      '->'
-IDENTIFIER 'z'
+STRING     'x is less than y'
+KEYWORD    'else'
+KEYWORD    'show'
+ARROW      '->'
+STRING     'x is not less than y'
 END        '#end'
 EOF        None
 
@@ -58,43 +61,42 @@ ProgramNode(
         is_declaration=
           True
       )
-      AssignmentNode(
-        name=
-          'z'
-        value=
-          BinaryOpNode(
+      IfElseNode(
+        condition=
+          ComparisonNode(
             left=
-              BinaryOpNode(
-                left=
-                  VariableNode(
-                    name=
-                      'x'
-                  )
-                operator=
-                  '+'
-                right=
-                  VariableNode(
-                    name=
-                      'y'
-                  )
+              VariableNode(
+                name=
+                  'x'
               )
             operator=
-              '*'
+              '<'
             right=
-              NumberNode(
-                value=
-                  4
+              VariableNode(
+                name=
+                  'y'
               )
           )
-        is_declaration=
-          True
-      )
-      PrintNode(
-        value=
-          VariableNode(
-            name=
-              'z'
-          )
+        then_body=
+          [
+            PrintNode(
+              value=
+                StringNode(
+                  value=
+                    'x is less than y'
+                )
+            )
+          ]
+        else_body=
+          [
+            PrintNode(
+              value=
+                StringNode(
+                  value=
+                    'x is not less than y'
+                )
+            )
+          ]
       )
     ]
 )
@@ -102,15 +104,16 @@ ProgramNode(
 Semantic Analysis (Symbol Table):
 x: number
 y: number
-z: number
 
 Intermediate Code:
 x = 2
 y = 3
-t1 = x + y
-t2 = t1 * 4
-z = t2
-print z
+ifFalse x < y goto L1
+print "x is less than y"
+goto L2
+L1:
+print "x is not less than y"
+L2:
 
 Optimized AST:
 ProgramNode(
@@ -138,23 +141,42 @@ ProgramNode(
         is_declaration=
           True
       )
-      AssignmentNode(
-        name=
-          'z'
-        value=
-          NumberNode(
-            value=
-              20
+      IfElseNode(
+        condition=
+          ComparisonNode(
+            left=
+              NumberNode(
+                value=
+                  2
+              )
+            operator=
+              '<'
+            right=
+              NumberNode(
+                value=
+                  3
+              )
           )
-        is_declaration=
-          True
-      )
-      PrintNode(
-        value=
-          NumberNode(
-            value=
-              20
-          )
+        then_body=
+          [
+            PrintNode(
+              value=
+                StringNode(
+                  value=
+                    'x is less than y'
+                )
+            )
+          ]
+        else_body=
+          [
+            PrintNode(
+              value=
+                StringNode(
+                  value=
+                    'x is not less than y'
+                )
+            )
+          ]
       )
     ]
 )
@@ -162,19 +184,24 @@ ProgramNode(
 Optimized Code:
 x = 2
 y = 3
-t1 = 5
-t2 = 20
-z = 20
-print 20
+ifFalse x < y goto L1
+print "x is less than y"
+goto L2
+L1:
+print "x is not less than y"
+L2:
 
 Generated Code:
 MOV x, 2
 MOV y, 3
-MOV t1, 5
-MOV t2, 20
-MOV z, 20
-MOV R1, 20
+MOV R1, x
+MOV R2, y
+CMP R1, R2
+JGE L1
+MOV R1, "x is less than y"
 PRINT R1
-
-Final Output:
-20
+JMP L2
+L1:
+MOV R1, "x is not less than y"
+PRINT R1
+L2:

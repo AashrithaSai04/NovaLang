@@ -14,7 +14,7 @@ class LexerError(Exception):
 
 
 class Lexer:
-    KEYWORDS = {"var", "show", "if", "else", "while"}
+    KEYWORDS = {"var", "show", "if", "else", "while", "then"}
 
     def __init__(self, text: str):
         self.text = text

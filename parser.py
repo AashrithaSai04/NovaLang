@@ -66,31 +66,78 @@ class Parser:
 
     def if_statement(self):
         self._expect('KEYWORD', 'if')
-        condition = self.comparison()
-        self._expect('LBRACE')
-        then_body = self.block()
-        self._expect('RBRACE')
+        
+        # Handle optional parentheses around condition
+        has_parens = self._current().type == 'LPAREN'
+        if has_parens:
+            self._advance()
+            condition = self.comparison()
+            self._expect('RPAREN')
+        else:
+            condition = self.comparison()
+        
+        # Handle 'then' keyword or braces
+        if self._current().type == 'KEYWORD' and self._current().value == 'then':
+            self._advance()
+            then_body = self.statement_list_until(['else', 'RBRACE', 'EOF'])
+        else:
+            self._expect('LBRACE')
+            then_body = self.block()
+            self._expect('RBRACE')
         
         if self._current().type == 'KEYWORD' and self._current().value == 'else':
             self._advance()
-            self._expect('LBRACE')
-            else_body = self.block()
-            self._expect('RBRACE')
+            if self._current().type == 'LBRACE':
+                self._advance()
+                else_body = self.block()
+                self._expect('RBRACE')
+            else:
+                else_body = self.statement_list_until(['RBRACE', 'EOF'])
             return IfElseNode(condition, then_body, else_body)
         
         return IfNode(condition, then_body)
 
     def while_statement(self):
         self._expect('KEYWORD', 'while')
-        condition = self.comparison()
-        self._expect('LBRACE')
-        body = self.block()
-        self._expect('RBRACE')
+        
+        # Handle optional parentheses around condition
+        has_parens = self._current().type == 'LPAREN'
+        if has_parens:
+            self._advance()
+            condition = self.comparison()
+            self._expect('RPAREN')
+        else:
+            condition = self.comparison()
+        
+        # Handle 'then' keyword or braces
+        if self._current().type == 'KEYWORD' and self._current().value == 'then':
+            self._advance()
+            body = self.statement_list_until(['RBRACE', 'EOF', 'else'])
+        else:
+            self._expect('LBRACE')
+            body = self.block()
+            self._expect('RBRACE')
         return WhileNode(condition, body)
 
     def block(self):
         statements = []
         while self._current().type not in ('RBRACE', 'EOF'):
+            statements.append(self.statement())
+        return statements
+
+    def statement_list_until(self, stop_keywords):
+        """Parse statements until one of the stop keywords is encountered."""
+        statements = []
+        while True:
+            current = self._current()
+            if current.type == 'EOF':
+                break
+            if current.type == 'RBRACE':
+                break
+            if current.type == 'END':
+                break
+            if current.type == 'KEYWORD' and current.value in stop_keywords:
+                break
             statements.append(self.statement())
         return statements
 

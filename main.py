@@ -9,116 +9,6 @@ from parser import Parser, ParserError
 from semantic import SemanticAnalyzer, SemanticError
 
 
-class Interpreter:
-    def __init__(self):
-        self.environment = {}
-
-    def execute(self, node):
-        return self._visit(node)
-
-    def _visit(self, node):
-        from ast_nodes import (
-            AssignmentNode, BinaryOpNode, NumberNode, PrintNode, ProgramNode,
-            VariableNode, IfNode, IfElseNode, ComparisonNode, WhileNode, StringNode,
-            UnaryOpNode
-        )
-
-        if isinstance(node, ProgramNode):
-            result = None
-            for statement in node.statements:
-                result = self._visit(statement)
-            return result
-
-        if isinstance(node, AssignmentNode):
-            value = self._visit(node.value)
-            self.environment[node.name] = value
-            return value
-
-        if isinstance(node, PrintNode):
-            value = self._visit(node.value)
-            print(value)
-            return value
-
-        if isinstance(node, IfNode):
-            condition = self._visit(node.condition)
-            if condition:
-                result = None
-                for statement in node.then_body:
-                    result = self._visit(statement)
-                return result
-            return None
-
-        if isinstance(node, IfElseNode):
-            condition = self._visit(node.condition)
-            if condition:
-                result = None
-                for statement in node.then_body:
-                    result = self._visit(statement)
-                return result
-            else:
-                result = None
-                for statement in node.else_body:
-                    result = self._visit(statement)
-                return result
-
-        if isinstance(node, WhileNode):
-            result = None
-            while self._visit(node.condition):
-                for statement in node.body:
-                    result = self._visit(statement)
-            return result
-
-        if isinstance(node, ComparisonNode):
-            left = self._visit(node.left)
-            right = self._visit(node.right)
-            if node.operator == '==':
-                return left == right
-            if node.operator == '!=':
-                return left != right
-            if node.operator == '<':
-                return left < right
-            if node.operator == '>':
-                return left > right
-            if node.operator == '<=':
-                return left <= right
-            if node.operator == '>=':
-                return left >= right
-            raise ValueError(f'Unknown comparison operator {node.operator!r}')
-
-        if isinstance(node, BinaryOpNode):
-            left = self._visit(node.left)
-            right = self._visit(node.right)
-            if node.operator == '+':
-                return left + right
-            if node.operator == '-':
-                return left - right
-            if node.operator == '*':
-                return left * right
-            if node.operator == '/':
-                if right == 0:
-                    raise ZeroDivisionError('Division by zero')
-                return left // right
-            raise ValueError(f'Unknown operator {node.operator!r}')
-
-        if isinstance(node, UnaryOpNode):
-            operand = self._visit(node.operand)
-            if node.operator == '-':
-                return -operand
-            raise ValueError(f'Unknown unary operator {node.operator!r}')
-
-        if isinstance(node, NumberNode):
-            return node.value
-
-        if isinstance(node, StringNode):
-            return node.value
-
-        if isinstance(node, VariableNode):
-            if node.name not in self.environment:
-                raise NameError(f'Variable {node.name!r} is not defined')
-            return self.environment[node.name]
-
-        raise TypeError(f'Unsupported node type {type(node).__name__}')
-
 
 def compile_and_run(source_code):
     lexer = Lexer(source_code)
@@ -140,8 +30,7 @@ def compile_and_run(source_code):
     codegen = CodeGenerator()
     generated_code = codegen.generate(optimized_intermediate_code)
 
-    interpreter = Interpreter()
-    final_output = interpreter.execute(optimized_ast)
+    final_output = None
 
     return {
         'tokens': tokens,
@@ -189,8 +78,10 @@ def main():
 #begin
 var x <- 2
 var y <- 3
-var z <- (x + y) * 4
-show -> z
+if (x<y) then
+show -> "x is less than y"
+else
+show -> "x is not less than y"
 #end
 """
     else:
@@ -245,11 +136,6 @@ show -> z
         for instruction in phase_output['generated_code']:
             output_lines.append(instruction)
         output_lines.append("")
-
-        # Final Output
-        output_lines.append("Final Output:")
-        if phase_output['final_output'] is not None:
-            output_lines.append(str(phase_output['final_output']))
 
         # Join everything
         final_output_text = "\n".join(output_lines)
